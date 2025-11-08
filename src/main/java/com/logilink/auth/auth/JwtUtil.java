@@ -1,5 +1,6 @@
 package com.logilink.auth.auth;
 
+import com.logilink.auth.model.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -11,6 +12,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,15 +40,17 @@ public class JwtUtil {
         key = Keys.hmacShaKeyFor(bytes);
     }
 
-    public String createAccessToken(Long userId, String username, String role) {
+    public String createAccessToken(User user) {
         Date now = new Date();
         Date validityDate = new Date(now.getTime() + accessTokenExpiration);
 
         return BEARER_PREFIX +
             Jwts.builder()
-                .subject(String.valueOf(userId))
-                .claim("username",  username)
-                .claim("role",  role)
+                .subject(String.valueOf(user.getId()))
+                .claim("username",  user.getUsername())
+                .claim("role",  user.getRole())
+                .claim("hub_id", user.getHubId())
+                .claim("company_id", user.getCompanyId())
                 .claim("type", "access")
                 .issuedAt(now)
                 .expiration(validityDate)
@@ -102,6 +106,18 @@ public class JwtUtil {
     public String getUsernameFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("username", String.class);
+    }
+
+    public UUID getHubIdFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        String hubId = claims.get("hub_id", String.class);
+        return hubId != null ? UUID.fromString(hubId) : null;
+    }
+
+    public UUID getCompanyIdFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        String companyId = claims.get("company_id", String.class);
+        return companyId != null ? UUID.fromString(companyId) : null;
     }
 
     public String getRoleFromToken(String token) {
