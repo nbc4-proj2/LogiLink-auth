@@ -20,3 +20,7 @@ jwt:
   access:
     token:
       expire: 3600000
+
+login:
+  master:
+    key: ${LOGIN_MASTER_KEY}
