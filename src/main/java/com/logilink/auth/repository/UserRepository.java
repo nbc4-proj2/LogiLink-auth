@@ -14,4 +14,8 @@ public interface UserRepository{
     Optional<User> findByUsernameNotDeleted(String username);
     Optional<User> findByIdNotDeleted(Long userId);
 
+    boolean existsValidUserByUsername(String username);
+    boolean existsValidUserByEmail(String email);
+    boolean existsValidUserBySlackId(String slackId);
+
 }

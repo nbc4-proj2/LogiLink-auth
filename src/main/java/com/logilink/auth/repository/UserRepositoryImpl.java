@@ -35,4 +35,19 @@ public class UserRepositoryImpl implements UserRepository{
     public Optional<User> findByIdNotDeleted(Long userId) {
         return userJpaRepository.findByIdAndDeletedAtIsNull(userId);
     }
+
+    @Override
+    public boolean existsValidUserByUsername(String username) {
+        return userJpaRepository.existsByUsernameAndDeletedAtIsNull(username);
+    }
+
+    @Override
+    public boolean existsValidUserByEmail(String email) {
+        return userJpaRepository.existsByEmailAndDeletedAtIsNull(email);
+    }
+
+    @Override
+    public boolean existsValidUserBySlackId(String slackId) {
+        return userJpaRepository.existsBySlackIdAndDeletedAtIsNull(slackId);
+    }
 }
