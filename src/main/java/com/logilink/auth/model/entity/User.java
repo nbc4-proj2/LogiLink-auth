@@ -1,5 +1,6 @@
 package com.logilink.auth.model.entity;
 
+import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -53,11 +54,24 @@ public class User extends BaseEntity {
         User user = new User();
         user.username = signupReq.username();
         user.password = encodedPassword;
-        user.slackId = signupReq.slackID();
+        user.slackId = signupReq.slackId();
         user.role = signupReq.role();
         user.userStatus = UserStatus.PENDING;
         user.hubId = signupReq.hubId();
         user.companyId = signupReq.companyId();
+        return user;
+    }
+
+    /**
+     * 마스터 회원가입용 정적 팩토리 메서드
+     */
+    public static User createMaster(MasterSignupReq signupReq, String encodedPassword) {
+        User user = new User();
+        user.username = signupReq.username();
+        user.password = encodedPassword;
+        user.slackId = signupReq.slackId();
+        user.role = UserRole.MASTER;
+        user.userStatus = UserStatus.APPROVED;
         return user;
     }
 }
