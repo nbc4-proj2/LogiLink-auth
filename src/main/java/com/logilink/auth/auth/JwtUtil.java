@@ -140,6 +140,6 @@ public class JwtUtil {
     }
 
     public long getAccessTokenExpiration() {
-        return accessTokenExpiration;
+        return accessTokenExpiration / 1000;    // ms -> s 변환
     }
 }
