@@ -78,6 +78,27 @@ public class UserService {
         return MasterSignupRes.from(master);
     }
 
+    @Transactional
+    public UserLoginRes login(UserLoginReq loginReq) {
+        // 유저 확인
+        User user = userRepository.findByUsernameNotDeleted(loginReq.username())
+            .orElseThrow(() -> new AppException(INVALID_LOGIN));
+
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(loginReq.password(), user.getPassword())) {
+            throw new AppException(INVALID_LOGIN);
+        }
+
+        // 승인 상태 확인
+        checkUserStatus(user);
+
+        // JWT 토큰 생성
+        String accessToken = jwtUtil.createAccessToken(user);
+
+        UserInfo userInfo = UserInfo.from(user);
+        return UserLoginRes.of(accessToken, jwtUtil.getAccessTokenExpiration(), userInfo);
+    }
+
     private void checkDuplicateUser(UserSignupInfo signupInfo) {
         if (userRepository.existsValidUserByUsername(signupInfo.username())) {
             throw new AppException(DUPLICATE_USERNAME);
