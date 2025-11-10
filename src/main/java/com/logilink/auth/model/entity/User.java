@@ -5,6 +5,8 @@ import com.logilink.auth.model.dto.request.UserSignupReq;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,7 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users")
+@Table(name = "p_users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AttributeOverride(name = "createdId", column = @Column(insertable = false, updatable = false))
@@ -28,19 +30,21 @@ public class User extends BaseEntity {
     @Column(unique = true, length = 10, nullable = false)
     private String username;
 
-    @Column(nullable = false, length = 15)
+    @Column(nullable = false)
     private String password;
 
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(unique = true, nullable = false, length = 20)
-    private String slackId;     //슬랙 id 수정 필요
+    @Column(unique = true, length = 20)
+    private String slackId;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private UserRole role;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private UserStatus userStatus;
 
     private UUID hubId;         // 허브 관리자, 업체 담당자, 업체 배송 담당자
@@ -54,7 +58,7 @@ public class User extends BaseEntity {
         User user = new User();
         user.username = signupReq.username();
         user.password = encodedPassword;
-        user.slackId = signupReq.slackId();
+        user.email = signupReq.email();
         user.role = signupReq.role();
         user.userStatus = UserStatus.PENDING;
         user.hubId = signupReq.hubId();
@@ -69,9 +73,16 @@ public class User extends BaseEntity {
         User user = new User();
         user.username = signupReq.username();
         user.password = encodedPassword;
-        user.slackId = signupReq.slackId();
+        user.email = signupReq.email();
         user.role = UserRole.MASTER;
         user.userStatus = UserStatus.APPROVED;
         return user;
+    }
+
+    /**
+     * 유저의 상태 업데이트
+     */
+    public void updateUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
     }
 }
