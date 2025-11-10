@@ -1,7 +1,10 @@
 package com.logilink.auth.repository;
 
 import com.logilink.auth.model.entity.User;
+import com.logilink.auth.model.entity.UserStatus;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +16,9 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsernameAndDeletedAtIsNull(String username);
     boolean existsByEmailAndDeletedAtIsNull(String email);
-    boolean existsBySlackIdAndDeletedAtIsNull(String slackId);
+    //boolean existsBySlackIdAndDeletedAtIsNull(String slackId);
+
+    List<User> findAllByIdInAndDeletedAtIsNullAndUserStatus(List<Long> idList, UserStatus userStatus);
+    List<User> findAllByHubIdAndIdInAndDeletedAtIsNullAndUserStatus(UUID hubId, List<Long> idList, UserStatus userStatus);
+
 }
