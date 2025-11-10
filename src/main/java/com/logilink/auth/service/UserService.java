@@ -1,17 +1,20 @@
 package com.logilink.auth.service;
 
 import static com.logilink.auth.exception.UserErrorCode.*;
+import static com.logilink.auth.model.entity.UserStatus.*;
 
 import com.logilink.auth.auth.JwtUtil;
 import com.logilink.auth.config.security.LoginMasterKeyConfig;
 import com.logilink.auth.exception.AppException;
 import com.logilink.auth.model.dto.UserInfo;
+import com.logilink.auth.model.dto.UserMyInfo;
 import com.logilink.auth.model.dto.UserSignupInfo;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserLoginReq;
 import com.logilink.auth.model.dto.request.UserSearchReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.request.UserStatusUpdateReq;
+import com.logilink.auth.model.dto.request.UserUpdateReq;
 import com.logilink.auth.model.dto.response.MasterSignupRes;
 import com.logilink.auth.model.dto.response.UserLoginRes;
 import com.logilink.auth.model.dto.response.UserPageRes;
@@ -53,16 +56,7 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(signupReq.password());
 
         // 유저 생성
-        User user = User.create(signupReq, encodedPassword);
-        userRepository.save(user);
-
-        // 배송 담당자라면 DeliveryUser 생성
-        if (user.getRole().isDeliveryRole()) {
-            DeliveryType type = (user.getRole() == UserRole.HUB_DELIVERY_MANAGER)
-                ? DeliveryType.HUB : DeliveryType.COMPANY;
-
-            deliveryUserRepository.save(DeliveryUser.createDeliveryUser(user.getId(), type));
-        }
+        User user = generateUser(signupReq, encodedPassword, PENDING);
 
         return UserSignupRes.from(user);
     }
@@ -147,12 +141,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserPageRes getPendingUserPageForMaster(User user, UserSearchReq searchReq) {
+    public UserPageRes getPendingUserPageForMaster(User user, Pageable pageable) {
         // 권한 확인
         checkMasterRole(user);
-
-        // Pageable 생성
-        Pageable pageable = getPageable(searchReq);
 
         Page<User> userPage = userRepository.findValidUserPage(pageable);
 
@@ -160,25 +151,104 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserPageRes getPendingUserPageForHubManager(User user, UserSearchReq searchReq) {
+    public UserPageRes getPendingUserPageForHubManager(User user, Pageable pageable) {
         // 권한 확인
         checkHubManagerRole(user);
-
-        // Pageable 생성
-        Pageable pageable = getPageable(searchReq);
 
         Page<User> userPage = userRepository.findValidUserPageByHubId(user.getHubId(), pageable);
 
         return UserPageRes.of(userPage);
     }
 
-    private static Pageable getPageable(UserSearchReq searchReq) {
-        Pageable pageable = PageRequest.of(
-            searchReq.page(),
-            searchReq.size(),
-            Sort.by(searchReq.getDirection(), searchReq.getSortBy())
-        );
-        return pageable;
+    @Transactional
+    public UserInfo createUser(User master, UserSignupReq signupReq) {
+        //권한 확인
+        checkMasterRole(master);
+
+        // 비밀번호 인코딩
+        String encodedPassword = passwordEncoder.encode(signupReq.password());
+
+        // 유저 생성
+        User user = generateUser(signupReq, encodedPassword, APPROVED);
+
+        return UserInfo.from(user);
+    }
+
+    @Transactional
+    public UserInfo updateUser(User master, Long userId, UserUpdateReq updateReq) {
+        // 권한 확인
+        checkMasterRole(master);
+
+        // 수정할 유저
+        User user = getUser(userId);
+
+        // 업데이트
+        user.updateUser(updateReq);
+
+        return UserInfo.from(user);
+    }
+
+    @Transactional
+    public void deleteUser(User master, Long userId) {
+        // 권한 확인
+        checkMasterRole(master);
+
+        // 삭제 처리할 유저
+        User user = getUser(userId);
+
+        // soft delete 처리
+        user.delete(master.getId());
+    }
+
+    // 마스터용 유저 조회
+    @Transactional(readOnly = true)
+    public UserInfo getUserInfo(User master, Long userId) {
+        // 권한 확인
+        checkMasterRole(master);
+
+        // 조회할 유저
+        User user = getUser(userId);
+
+        return UserInfo.from(user);
+    }
+
+    // 전체 조회
+    @Transactional(readOnly = true)
+    public UserPageRes getAllUsersForMaster(User user, Pageable pageable) {
+        // 권한 확인
+        checkMasterRole(user);
+
+        Page<User> userPage = userRepository.findAllValidUserPage(pageable);
+
+        return UserPageRes.of(userPage);
+    }
+
+    // 내 정보 조회
+    @Transactional(readOnly = true)
+    public UserMyInfo getUserMyInfo(User user) {
+        User me = getUser(user.getId());
+
+        return UserMyInfo.from(me);
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findValidUserById(userId)
+            .orElseThrow(() -> new AppException(USER_NOT_FOUND));
+    }
+
+    private User generateUser(UserSignupReq signupReq, String encodedPassword, UserStatus status) {
+        // 유저 생성
+        User user = User.create(signupReq, encodedPassword, status);
+        userRepository.save(user);
+
+        // 배송 담당자라면 DeliveryUser 생성
+        if (user.getRole().isDeliveryRole()) {
+            DeliveryType type = (user.getRole() == UserRole.HUB_DELIVERY_MANAGER)
+                ? DeliveryType.HUB : DeliveryType.COMPANY;
+
+            deliveryUserRepository.save(DeliveryUser.createDeliveryUser(user.getId(), type));
+        }
+        return user;
     }
 
     private static void checkMasterRole(User user) {
