@@ -9,10 +9,12 @@ import com.logilink.auth.model.dto.UserInfo;
 import com.logilink.auth.model.dto.UserSignupInfo;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserLoginReq;
+import com.logilink.auth.model.dto.request.UserSearchReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.request.UserStatusUpdateReq;
 import com.logilink.auth.model.dto.response.MasterSignupRes;
 import com.logilink.auth.model.dto.response.UserLoginRes;
+import com.logilink.auth.model.dto.response.UserPageRes;
 import com.logilink.auth.model.dto.response.UserSignupRes;
 import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.model.entity.DeliveryType;
@@ -24,6 +26,10 @@ import com.logilink.auth.repository.DeliveryUserRepository;
 import com.logilink.auth.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,17 +108,16 @@ public class UserService {
     }
 
     @Transactional
-    public UserStatusUpdateRes updateUserStatusByMaster(User user, UserStatusUpdateReq statusUpdateReq) {
+    public UserStatusUpdateRes updateUserStatusByMaster(User user,
+        UserStatusUpdateReq statusUpdateReq) {
         // 권한 확인
-        if (user.getRole() != UserRole.MASTER) {
-            throw new AppException(REQUIRE_MASTER_ROLE);
-        }
+        checkMasterRole(user);
 
         // 상태가 삭제되지 않은 User 리스트
-        List<User> userList = userRepository.findValidUserByIds(statusUpdateReq.userIdList());
+        List<User> userList = userRepository.findValidUsersByIds(statusUpdateReq.userIdList());
 
         // 더티체킹으로 업데이트
-        for(User pendingUser : userList) {
+        for (User pendingUser : userList) {
             pendingUser.updateUserStatus(statusUpdateReq.status());
         }
 
@@ -122,14 +127,14 @@ public class UserService {
     }
 
     @Transactional
-    public UserStatusUpdateRes updateUserStatusByHubManager(User user, UserStatusUpdateReq statusUpdateReq) {
+    public UserStatusUpdateRes updateUserStatusByHubManager(User user,
+        UserStatusUpdateReq statusUpdateReq) {
         // 권한 확인
-        if (user.getRole() != UserRole.HUB_MANAGER) {
-            throw new AppException(REQUIRE_HUB_MASTER_ROLE);
-        }
+        checkHubManagerRole(user);
 
         // 자신의 허브 소속 유저만 조회
-        List<User> userList = userRepository.findValidUserByIdsAndHubId(user.getHubId(), statusUpdateReq.userIdList());
+        List<User> userList = userRepository.findValidUsersByIdsAndHubId(user.getHubId(),
+            statusUpdateReq.userIdList());
 
         for (User pendingUser : userList) {
             pendingUser.updateUserStatus(statusUpdateReq.status());
@@ -139,6 +144,53 @@ public class UserService {
 
         return UserStatusUpdateRes.of(updateIdList);
 
+    }
+
+    @Transactional(readOnly = true)
+    public UserPageRes getPendingUserPageForMaster(User user, UserSearchReq searchReq) {
+        // 권한 확인
+        checkMasterRole(user);
+
+        // Pageable 생성
+        Pageable pageable = getPageable(searchReq);
+
+        Page<User> userPage = userRepository.findValidUserPage(pageable);
+
+        return UserPageRes.of(userPage);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPageRes getPendingUserPageForHubManager(User user, UserSearchReq searchReq) {
+        // 권한 확인
+        checkHubManagerRole(user);
+
+        // Pageable 생성
+        Pageable pageable = getPageable(searchReq);
+
+        Page<User> userPage = userRepository.findValidUserPageByHubId(user.getHubId(), pageable);
+
+        return UserPageRes.of(userPage);
+    }
+
+    private static Pageable getPageable(UserSearchReq searchReq) {
+        Pageable pageable = PageRequest.of(
+            searchReq.page(),
+            searchReq.size(),
+            Sort.by(searchReq.getDirection(), searchReq.getSortBy())
+        );
+        return pageable;
+    }
+
+    private static void checkMasterRole(User user) {
+        if (user.getRole() != UserRole.MASTER) {
+            throw new AppException(REQUIRE_MASTER_ROLE);
+        }
+    }
+
+    private static void checkHubManagerRole(User user) {
+        if (user.getRole() != UserRole.HUB_MANAGER) {
+            throw new AppException(REQUIRE_HUB_MASTER_ROLE);
+        }
     }
 
     private void checkDuplicateUser(UserSignupInfo signupInfo) {

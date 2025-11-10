@@ -5,6 +5,8 @@ import com.logilink.auth.model.entity.UserStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -21,4 +23,8 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     List<User> findAllByIdInAndDeletedAtIsNullAndUserStatus(List<Long> idList, UserStatus userStatus);
     List<User> findAllByHubIdAndIdInAndDeletedAtIsNullAndUserStatus(UUID hubId, List<Long> idList, UserStatus userStatus);
 
+    Page<User> findAllByDeletedAtIsNullAndUserStatus(UserStatus userStatus, Pageable pageable);
+    Page<User> findAllByDeletedAtIsNullAndUserStatusAndHubId(
+        UserStatus userStatus, UUID hubId, Pageable pageable
+    );
 }

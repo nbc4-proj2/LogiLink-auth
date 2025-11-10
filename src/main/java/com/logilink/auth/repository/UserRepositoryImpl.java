@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -52,13 +55,23 @@ public class UserRepositoryImpl implements UserRepository{
     }
 
     @Override
-    public List<User> findValidUserByIds(List<Long> idList) {
+    public List<User> findValidUsersByIds(List<Long> idList) {
         return userJpaRepository.findAllByIdInAndDeletedAtIsNullAndUserStatus(idList, PENDING);
     }
 
     @Override
-    public List<User> findValidUserByIdsAndHubId(UUID hubId, List<Long> idList) {
+    public List<User> findValidUsersByIdsAndHubId(UUID hubId, List<Long> idList) {
         return userJpaRepository.findAllByHubIdAndIdInAndDeletedAtIsNullAndUserStatus(hubId, idList, PENDING);
+    }
+
+    @Override
+    public Page<User> findValidUserPage(Pageable pageable) {
+        return userJpaRepository.findAllByDeletedAtIsNullAndUserStatus(PENDING, pageable);
+    }
+
+    @Override
+    public Page<User> findValidUserPageByHubId(UUID hubId, Pageable pageable) {
+        return userJpaRepository.findAllByDeletedAtIsNullAndUserStatusAndHubId(PENDING, hubId, pageable);
     }
 
 //    @Override

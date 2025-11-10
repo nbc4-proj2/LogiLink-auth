@@ -5,6 +5,7 @@ import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.response.UserLoginRes;
 import com.logilink.auth.model.dto.response.UserSignupRes;
 import com.logilink.auth.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -21,12 +22,12 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<UserSignupRes> signup(@RequestBody UserSignupReq userSignupReq) {
+    public ResponseEntity<UserSignupRes> signup(@Valid @RequestBody UserSignupReq userSignupReq) {
         return ResponseEntity.ok(userService.signup(userSignupReq));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserLoginRes> login(@RequestBody UserLoginReq userLoginReq) {
+    public ResponseEntity<UserLoginRes> login(@Valid @RequestBody UserLoginReq userLoginReq) {
         UserLoginRes loginRes = userService.login(userLoginReq);
 
         return ResponseEntity.ok()
@@ -34,5 +35,3 @@ public class UserController {
             .body(loginRes);
     }
 }
-
-// TODO : 응답 포맷 통일
