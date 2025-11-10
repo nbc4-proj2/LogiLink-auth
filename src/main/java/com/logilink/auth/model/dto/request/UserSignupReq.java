@@ -29,10 +29,6 @@ public record UserSignupReq(
     @Size(max = 100, message = "이메일은 100자 이하로 입력해주세요.")
     String email,
 
-    @NotBlank(message = "슬랙ID는 필수 입력 값입니다.")
-    @Size(max = 20, message = "슬랙 ID는 20자 이하로 입력해주세요.")
-    String slackId,
-
     @NotNull(message = "권한은 필수 입력 값입니다.")
     UserRole role,
 

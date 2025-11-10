@@ -25,9 +25,5 @@ public record MasterSignupReq(
     @NotBlank(message = "이메일은 필수 입력 값입니다.")
     @Email(message = "올바른 이메일 형식이 아닙니다.")
     @Size(max = 100, message = "이메일은 100자 이하로 입력해주세요.")
-    String email,
-
-    @NotBlank(message = "슬랙ID는 필수 입력 값입니다.")
-    @Size(max = 20, message = "슬랙 ID는 20자 이하로 입력해주세요.")
-    String slackId
+    String email
 ) implements UserSignupInfo {}

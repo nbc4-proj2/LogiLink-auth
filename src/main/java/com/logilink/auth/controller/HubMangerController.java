@@ -8,6 +8,9 @@ import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.model.entity.User;
 import com.logilink.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,6 +45,13 @@ public class HubMangerController {
         @ModelAttribute UserSearchReq searchReq
     ) {
         User user = userDetails.user();
-        return ResponseEntity.ok(userService.getPendingUserPageForHubManager(user, searchReq));
+
+        Pageable pageable = PageRequest.of(
+            searchReq.page(),
+            searchReq.size(),
+            Sort.by(searchReq.getDirection(), searchReq.getSortBy())
+        );
+
+        return ResponseEntity.ok(userService.getPendingUserPageForHubManager(user, pageable));
     }
 }

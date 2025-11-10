@@ -7,18 +7,16 @@ import com.logilink.auth.model.entity.UserStatus;
 public record UserSignupRes(
     String username,
     String email,
-    String slackId,
-    UserRole role,
-    UserStatus userStatus
+    String role,
+    String userStatus
 ) {
 
     public static UserSignupRes from(User user) {
         return new UserSignupRes(
             user.getUsername(),
             user.getEmail(),
-            user.getSlackId(),
-            user.getRole(),
-            user.getUserStatus()
+            user.getRole().name(),
+            user.getUserStatus().name()
         );
     }
 }
