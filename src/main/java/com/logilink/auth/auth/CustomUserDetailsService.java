@@ -18,7 +18,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsernameNotDeleted(username)
+        User user = userRepository.findValidUserByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("username : " + username));
 
         return new CustomUserDetails(user);
@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Transactional(readOnly = true)
     public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
-        User user = userRepository.findByIdNotDeleted(userId)
+        User user = userRepository.findValidUserById(userId)
             .orElseThrow(() -> new UsernameNotFoundException("userId : " + userId));
 
         return new CustomUserDetails(user);
