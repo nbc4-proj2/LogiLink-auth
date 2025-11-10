@@ -1,6 +1,6 @@
 package com.logilink.auth.model.dto.request;
 
-import com.logilink.auth.model.entity.UserStatus;
+import com.logilink.auth.common.constants.UserStatus;
 import java.util.List;
 
 public record UserStatusUpdateReq(

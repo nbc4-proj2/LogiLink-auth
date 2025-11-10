@@ -1,3 +1,14 @@
+server:
+  port: 19092
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:19090/eureka
+    register-with-eureka: false
+    fetch-registry: false
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/${DATABASE_NAME}
@@ -25,9 +36,7 @@ jwt:
     token:
       expire: 3600000
 
+
 login:
   master:
     key: ${LOGIN_MASTER_KEY}
-
-server:
-  port: 19092

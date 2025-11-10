@@ -11,7 +11,6 @@ import com.logilink.auth.model.dto.response.MasterSignupRes;
 import com.logilink.auth.model.dto.response.UserPageRes;
 import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.model.entity.User;
-import com.logilink.auth.model.entity.UserStatus;
 import com.logilink.auth.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

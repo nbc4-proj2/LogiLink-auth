@@ -1,7 +1,7 @@
 package com.logilink.auth.auth;
 
 import com.logilink.auth.model.entity.User;
-import com.logilink.auth.model.entity.UserRole;
+import com.logilink.auth.common.constants.UserRole;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.springframework.security.core.GrantedAuthority;

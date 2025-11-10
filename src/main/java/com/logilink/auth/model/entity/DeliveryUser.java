@@ -1,5 +1,7 @@
 package com.logilink.auth.model.entity;
 
+import com.logilink.auth.common.BaseEntity;
+import com.logilink.auth.common.constants.DeliveryType;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

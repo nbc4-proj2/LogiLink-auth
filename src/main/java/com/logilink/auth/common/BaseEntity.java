@@ -1,4 +1,4 @@
-package com.logilink.auth.model.entity;
+package com.logilink.auth.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

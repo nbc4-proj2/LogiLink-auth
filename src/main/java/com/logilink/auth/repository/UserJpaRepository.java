@@ -1,7 +1,7 @@
 package com.logilink.auth.repository;
 
 import com.logilink.auth.model.entity.User;
-import com.logilink.auth.model.entity.UserStatus;
+import com.logilink.auth.common.constants.UserStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

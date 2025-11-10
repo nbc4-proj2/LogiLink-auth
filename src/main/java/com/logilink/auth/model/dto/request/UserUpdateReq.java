@@ -1,6 +1,6 @@
 package com.logilink.auth.model.dto.request;
 
-import com.logilink.auth.model.entity.UserRole;
+import com.logilink.auth.common.constants.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

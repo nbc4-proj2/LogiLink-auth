@@ -1,6 +1,6 @@
 package com.logilink.auth.common;
 
-import com.logilink.auth.exception.AppException;
+import com.logilink.auth.common.exception.AppException;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

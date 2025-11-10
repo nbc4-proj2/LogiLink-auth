@@ -1,5 +1,8 @@
 package com.logilink.auth.model.entity;
 
+import com.logilink.auth.common.BaseEntity;
+import com.logilink.auth.common.constants.UserRole;
+import com.logilink.auth.common.constants.UserStatus;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.request.UserUpdateReq;

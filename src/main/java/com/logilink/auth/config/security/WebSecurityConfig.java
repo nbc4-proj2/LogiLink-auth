@@ -1,5 +1,8 @@
-package com.logilink.auth.auth;
+package com.logilink.auth.config.security;
 
+import com.logilink.auth.auth.CustomUserDetailsService;
+import com.logilink.auth.auth.JwtAuthenticationFilter;
+import com.logilink.auth.auth.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

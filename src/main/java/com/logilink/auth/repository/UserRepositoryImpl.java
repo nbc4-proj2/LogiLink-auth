@@ -1,16 +1,14 @@
 package com.logilink.auth.repository;
 
-import static com.logilink.auth.model.entity.UserStatus.PENDING;
+import static com.logilink.auth.common.constants.UserStatus.PENDING;
 
 import com.logilink.auth.model.entity.User;
-import com.logilink.auth.model.entity.UserStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 @Repository

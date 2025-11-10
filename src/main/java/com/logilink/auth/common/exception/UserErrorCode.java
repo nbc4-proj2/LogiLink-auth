@@ -1,4 +1,4 @@
-package com.logilink.auth.exception;
+package com.logilink.auth.common.exception;
 
 import static org.springframework.http.HttpStatus.*;
 

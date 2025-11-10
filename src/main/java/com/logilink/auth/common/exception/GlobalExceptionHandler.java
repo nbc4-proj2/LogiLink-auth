@@ -1,7 +1,7 @@
-package com.logilink.auth.exception;
+package com.logilink.auth.common.exception;
 
 import com.logilink.auth.common.BaseResponse;
-import com.logilink.auth.exception.ErrorResponse.ErrorField;
+import com.logilink.auth.common.exception.ErrorResponse.ErrorField;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
