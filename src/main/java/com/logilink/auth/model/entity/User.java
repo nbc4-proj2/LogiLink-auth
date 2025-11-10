@@ -2,6 +2,7 @@ package com.logilink.auth.model.entity;
 
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
+import com.logilink.auth.model.dto.request.UserUpdateReq;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,15 +53,15 @@ public class User extends BaseEntity {
     private UUID companyId;     // 업체 담당자, 업체 배송 담당자
 
     /**
-     * 허브 관리자, 배송 담당자, 업체 담당자 회원가입용 정적 팩토리 메서드
+     * 허브 관리자, 배송 담당자, 업체 담당자 회원가입/생성용 정적 팩토리 메서드
      */
-    public static User create(UserSignupReq signupReq, String encodedPassword) {
+    public static User create(UserSignupReq signupReq, String encodedPassword, UserStatus status) {
         User user = new User();
         user.username = signupReq.username();
         user.password = encodedPassword;
         user.email = signupReq.email();
         user.role = signupReq.role();
-        user.userStatus = UserStatus.PENDING;
+        user.userStatus = status;
         user.hubId = signupReq.hubId();
         user.companyId = signupReq.companyId();
         return user;
@@ -77,6 +78,16 @@ public class User extends BaseEntity {
         user.role = UserRole.MASTER;
         user.userStatus = UserStatus.APPROVED;
         return user;
+    }
+
+    /**
+     * 유저 정보 업데이트
+     */
+    public void updateUser(UserUpdateReq updateReq) {
+        if (updateReq.email() != null) this.email = updateReq.email();
+        if (updateReq.role() != null) this.role = updateReq.role();
+        if (updateReq.hubId() != null) this.hubId = updateReq.hubId();
+        if (updateReq.companyId() != null) this.companyId = updateReq.companyId();
     }
 
     /**
