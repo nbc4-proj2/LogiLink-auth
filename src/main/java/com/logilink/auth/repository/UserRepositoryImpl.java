@@ -74,6 +74,11 @@ public class UserRepositoryImpl implements UserRepository{
         return userJpaRepository.findAllByDeletedAtIsNullAndUserStatusAndHubId(PENDING, hubId, pageable);
     }
 
+    @Override
+    public Page<User> findAllValidUserPage(Pageable pageable) {
+        return userJpaRepository.findAllByDeletedAtIsNull(pageable);
+    }
+
 //    @Override
 //    public boolean existsValidUserBySlackId(String slackId) {
 //        return userJpaRepository.existsBySlackIdAndDeletedAtIsNull(slackId);

@@ -27,4 +27,5 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     Page<User> findAllByDeletedAtIsNullAndUserStatusAndHubId(
         UserStatus userStatus, UUID hubId, Pageable pageable
     );
+    Page<User> findAllByDeletedAtIsNull(Pageable pageable);
 }

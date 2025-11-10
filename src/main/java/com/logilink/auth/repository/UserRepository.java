@@ -27,4 +27,5 @@ public interface UserRepository{
 
     Page<User> findValidUserPage(Pageable pageable);
     Page<User> findValidUserPageByHubId(UUID hubId, Pageable pageable);
+    Page<User> findAllValidUserPage(Pageable pageable);
 }
