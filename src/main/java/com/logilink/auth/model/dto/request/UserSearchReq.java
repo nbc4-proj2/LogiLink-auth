@@ -4,7 +4,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 
 public record UserSearchReq(
-    String keyword,
     String sortBy,
     Sort.Direction direction,
     int page,

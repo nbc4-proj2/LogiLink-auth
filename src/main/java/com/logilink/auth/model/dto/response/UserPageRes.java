@@ -1,7 +1,6 @@
 package com.logilink.auth.model.dto.response;
 
-import com.logilink.auth.model.entity.User;
-import java.util.ArrayList;
+import com.logilink.auth.model.entity.User;;
 import java.util.List;
 import org.springframework.data.domain.Page;
 

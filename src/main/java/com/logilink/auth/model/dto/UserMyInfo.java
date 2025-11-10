@@ -5,25 +5,18 @@ import com.logilink.auth.model.entity.User;
 import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record UserInfo(
+public record UserMyInfo(
     String username,
     String email,
     String slackId,
-    String role,
-    String userStatus,
     UUID hubId,
     UUID companyId
-
 ) {
-    public static UserInfo from(User user) {
-        if (user == null) return null;
-
-        return new UserInfo(
+    public static UserMyInfo from(User user) {
+        return new UserMyInfo(
             user.getUsername(),
             user.getEmail(),
             user.getSlackId(),
-            user.getRole().name(),
-            user.getUserStatus().name(),
             user.getHubId(),
             user.getCompanyId()
         );
