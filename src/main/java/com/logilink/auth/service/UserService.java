@@ -10,9 +10,11 @@ import com.logilink.auth.model.dto.UserSignupInfo;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserLoginReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
+import com.logilink.auth.model.dto.request.UserStatusUpdateReq;
 import com.logilink.auth.model.dto.response.MasterSignupRes;
 import com.logilink.auth.model.dto.response.UserLoginRes;
 import com.logilink.auth.model.dto.response.UserSignupRes;
+import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.model.entity.DeliveryType;
 import com.logilink.auth.model.entity.DeliveryUser;
 import com.logilink.auth.model.entity.User;
@@ -20,8 +22,8 @@ import com.logilink.auth.model.entity.UserRole;
 import com.logilink.auth.model.entity.UserStatus;
 import com.logilink.auth.repository.DeliveryUserRepository;
 import com.logilink.auth.repository.UserRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,7 +83,7 @@ public class UserService {
     @Transactional
     public UserLoginRes login(UserLoginReq loginReq) {
         // 유저 확인
-        User user = userRepository.findByUsernameNotDeleted(loginReq.username())
+        User user = userRepository.findValidUserByUsername(loginReq.username())
             .orElseThrow(() -> new AppException(INVALID_LOGIN));
 
         // 비밀번호 검증
@@ -99,6 +101,46 @@ public class UserService {
         return UserLoginRes.of(accessToken, jwtUtil.getAccessTokenExpiration(), userInfo);
     }
 
+    @Transactional
+    public UserStatusUpdateRes updateUserStatusByMaster(User user, UserStatusUpdateReq statusUpdateReq) {
+        // 권한 확인
+        if (user.getRole() != UserRole.MASTER) {
+            throw new AppException(REQUIRE_MASTER_ROLE);
+        }
+
+        // 상태가 삭제되지 않은 User 리스트
+        List<User> userList = userRepository.findValidUserByIds(statusUpdateReq.userIdList());
+
+        // 더티체킹으로 업데이트
+        for(User pendingUser : userList) {
+            pendingUser.updateUserStatus(statusUpdateReq.status());
+        }
+
+        List<Long> updateIdList = userList.stream().map(User::getId).toList();
+
+        return UserStatusUpdateRes.of(updateIdList);
+    }
+
+    @Transactional
+    public UserStatusUpdateRes updateUserStatusByHubManager(User user, UserStatusUpdateReq statusUpdateReq) {
+        // 권한 확인
+        if (user.getRole() != UserRole.HUB_MANAGER) {
+            throw new AppException(REQUIRE_HUB_MASTER_ROLE);
+        }
+
+        // 자신의 허브 소속 유저만 조회
+        List<User> userList = userRepository.findValidUserByIdsAndHubId(user.getHubId(), statusUpdateReq.userIdList());
+
+        for (User pendingUser : userList) {
+            pendingUser.updateUserStatus(statusUpdateReq.status());
+        }
+
+        List<Long> updateIdList = userList.stream().map(User::getId).toList();
+
+        return UserStatusUpdateRes.of(updateIdList);
+
+    }
+
     private void checkDuplicateUser(UserSignupInfo signupInfo) {
         if (userRepository.existsValidUserByUsername(signupInfo.username())) {
             throw new AppException(DUPLICATE_USERNAME);
@@ -106,10 +148,6 @@ public class UserService {
 
         if (userRepository.existsValidUserByEmail(signupInfo.email())) {
             throw new AppException(DUPLICATE_EMAIL);
-        }
-
-        if (userRepository.existsValidUserBySlackId(signupInfo.slackId())) {
-            throw new AppException(DUPLICATE_SLACKID);
         }
     }
 
@@ -119,3 +157,7 @@ public class UserService {
         }
     }
 }
+
+// TODO :
+//  슬랙 아이디 저장하는 로직 필요
+//  - slack 도메인에서 슬랙 아이디 받아와서 저장
