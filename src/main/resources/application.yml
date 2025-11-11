@@ -1,20 +1,42 @@
+server:
+  port: 19092
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:19090/eureka
+    register-with-eureka: false
+    fetch-registry: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${DATABASE_NAME}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  config:
+    import: optional:file:.env[.properties]
+
+
 jwt:
   secret:
-    key: bXlzdXBlcnN0cm9uZ3NlY3JldGtleXRoYXRpc3NvbG9uZzEyMzQ1Ng==  # JWT 서명에 사용할 비밀 키
+    key: ${JWT_SECRET_KEY}
   access:
     token:
       expire: 3600000
 
-spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+
+login:
+  master:
+    key: ${LOGIN_MASTER_KEY}
