@@ -7,13 +7,16 @@ import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.request.UserUpdateReq;
 import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -54,6 +57,9 @@ public class User extends BaseEntity {
     private UUID hubId;         // 허브 관리자, 업체 담당자, 업체 배송 담당자
 
     private UUID companyId;     // 업체 담당자, 업체 배송 담당자
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private DeliveryUser deliveryUser;
 
     /**
      * 허브 관리자, 배송 담당자, 업체 담당자 회원가입/생성용 정적 팩토리 메서드
@@ -98,5 +104,12 @@ public class User extends BaseEntity {
      */
     public void updateUserStatus(UserStatus userStatus) {
         this.userStatus = userStatus;
+    }
+
+    /**
+     * 배송 담당자 연결
+     */
+    public void assignDeliveryUser(DeliveryUser deliveryUser) {
+        this.deliveryUser = deliveryUser;
     }
 }

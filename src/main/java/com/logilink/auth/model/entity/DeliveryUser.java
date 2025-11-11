@@ -7,9 +7,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -27,22 +30,23 @@ public class DeliveryUser extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
-    private Long userId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Enumerated(EnumType.STRING)
     private DeliveryType deliveryType;
 
-    private boolean isDelivery;     // true 배송중 / false 배송중 아님
+    private boolean isDeliveryAvailable;     // true 배송중 / false 배송중 아님
 
     /**
      * 배송 담당자 생성
      */
-    public static DeliveryUser createDeliveryUser(Long userId, DeliveryType deliveryType) {
+    public static DeliveryUser createDeliveryUser(User user, DeliveryType deliveryType) {
         DeliveryUser deliveryUser = new DeliveryUser();
-        deliveryUser.userId = userId;
+        deliveryUser.user = user;
         deliveryUser.deliveryType = deliveryType;
-        deliveryUser.isDelivery = false;
+        deliveryUser.isDeliveryAvailable = false;
         return deliveryUser;
     }
 
@@ -50,6 +54,6 @@ public class DeliveryUser extends BaseEntity {
      * 배송 상태 변경
      */
     public void updateStatus(boolean isDelivery) {
-        this.isDelivery = isDelivery;
+        this.isDeliveryAvailable = isDelivery;
     }
 }
