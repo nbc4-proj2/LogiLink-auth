@@ -112,4 +112,11 @@ public class User extends BaseEntity {
     public void assignDeliveryUser(DeliveryUser deliveryUser) {
         this.deliveryUser = deliveryUser;
     }
+
+    /**
+     * Slack Id 연결
+     */
+    public void updateSlackId(String slackId) {
+        this.slackId = slackId;
+    }
 }
