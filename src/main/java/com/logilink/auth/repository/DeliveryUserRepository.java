@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 public interface DeliveryUserRepository {
 
     void save(DeliveryUser deliveryUser);
+
+    DeliveryUser findByUserId(Long userId);
 }

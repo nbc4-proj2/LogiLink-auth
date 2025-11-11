@@ -10,6 +10,9 @@ eureka:
     fetch-registry: false
 
 spring:
+  application:
+    name: user-service
+
   datasource:
     url: jdbc:postgresql://localhost:5432/${DATABASE_NAME}
     username: ${DATABASE_USERNAME}
