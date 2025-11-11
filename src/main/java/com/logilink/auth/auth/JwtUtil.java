@@ -1,5 +1,6 @@
 package com.logilink.auth.auth;
 
+import com.logilink.auth.model.entity.DeliveryUser;
 import com.logilink.auth.model.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -44,14 +45,20 @@ public class JwtUtil {
         Date now = new Date();
         Date validityDate = new Date(now.getTime() + accessTokenExpiration);
 
+        DeliveryUser deliveryUser = user.getDeliveryUser();
+
         return BEARER_PREFIX +
             Jwts.builder()
                 .subject(String.valueOf(user.getId()))
+                .claim("user_id", user.getId())
                 .claim("username",  user.getUsername())
                 .claim("role",  user.getRole())
                 .claim("hub_id", user.getHubId())
                 .claim("company_id", user.getCompanyId())
                 .claim("type", "access")
+                // DeliveryUser 관련 claim
+                .claim("delivery_type", deliveryUser != null ? deliveryUser.getDeliveryType() : null)
+                .claim("is_delivery", deliveryUser != null ? deliveryUser.isDeliveryAvailable() : null)
                 .issuedAt(now)
                 .expiration(validityDate)
                 .signWith(key)
