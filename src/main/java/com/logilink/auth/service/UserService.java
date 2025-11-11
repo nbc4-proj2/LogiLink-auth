@@ -4,6 +4,8 @@ import static com.logilink.auth.common.constants.UserStatus.*;
 import static com.logilink.auth.common.exception.UserErrorCode.*;
 
 import com.logilink.auth.auth.JwtUtil;
+import com.logilink.auth.client.delivery.DeliveryLinkClient;
+import com.logilink.auth.client.delivery.DeliveryUserInfo;
 import com.logilink.auth.config.security.LoginMasterKeyConfig;
 import com.logilink.auth.common.exception.AppException;
 import com.logilink.auth.model.dto.UserInfo;
@@ -26,20 +28,26 @@ import com.logilink.auth.common.constants.UserRole;
 import com.logilink.auth.common.constants.UserStatus;
 import com.logilink.auth.repository.DeliveryUserRepository;
 import com.logilink.auth.repository.UserRepository;
+import feign.FeignException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final DeliveryUserRepository deliveryUserRepository;
+
+    private final DeliveryLinkClient deliveryLinkClient;
+
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final LoginMasterKeyConfig loginMasterKeyConfig;
@@ -251,8 +259,16 @@ public class UserService {
 
             // 유저 엔티티에 배송 담당자 연결
             user.assignDeliveryUser(deliveryUser);
-
             deliveryUserRepository.save(deliveryUser);
+
+            DeliveryUserInfo deliveryUserInfo = DeliveryUserInfo.from(user, deliveryUser);
+
+            try {
+                deliveryLinkClient.createDeliveryUser(deliveryUserInfo);
+            } catch (FeignException e) {
+                log.warn("Failed to create delivery link for user {}", user.getId());
+            }
+
         }
         return user;
     }
