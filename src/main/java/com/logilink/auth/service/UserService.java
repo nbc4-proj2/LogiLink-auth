@@ -246,7 +246,13 @@ public class UserService {
             DeliveryType type = (user.getRole() == UserRole.HUB_DELIVERY_MANAGER)
                 ? DeliveryType.HUB : DeliveryType.COMPANY;
 
-            deliveryUserRepository.save(DeliveryUser.createDeliveryUser(user.getId(), type));
+            // 배송 담당자 생성
+            DeliveryUser deliveryUser = DeliveryUser.createDeliveryUser(user, type);
+
+            // 유저 엔티티에 배송 담당자 연결
+            user.assignDeliveryUser(deliveryUser);
+
+            deliveryUserRepository.save(deliveryUser);
         }
         return user;
     }
