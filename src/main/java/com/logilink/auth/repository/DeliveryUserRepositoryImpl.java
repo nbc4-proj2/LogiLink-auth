@@ -14,4 +14,9 @@ public class DeliveryUserRepositoryImpl implements DeliveryUserRepository {
     public void save(DeliveryUser deliveryUser) {
         deliveryUserJpaRepository.save(deliveryUser);
     }
+
+    @Override
+    public DeliveryUser findByUserId(Long userId) {
+        return deliveryUserJpaRepository.findByUser_Id(userId);
+    }
 }
