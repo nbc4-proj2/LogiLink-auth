@@ -4,10 +4,12 @@ server:
 
 eureka:
   client:
+    register-with-eureka: true
+    fetch-registry: true
     service-url:
-      defaultZone: http://localhost:19090/eureka
-    register-with-eureka: false
-    fetch-registry: false
+      defaultZone: http://localhost:19090/eureka/
+  instance:
+    hostname: user-service
 
 spring:
   application:
@@ -28,10 +30,13 @@ spring:
       hibernate:
         format_sql: true
 
-  config:
-    import: optional:file:.env[.properties]
 
+logging:
+  level:
+    org.springframework.cloud.openfeign: DEBUG
+    org.springframework.web: DEBUG
 
+##### JWT #####
 jwt:
   secret:
     key: ${JWT_SECRET_KEY}
@@ -46,7 +51,7 @@ jwt:
         master: 259200000
         others: 604800000
 
-
+##### Master Login #####
 login:
   master:
     key: ${LOGIN_MASTER_KEY}
