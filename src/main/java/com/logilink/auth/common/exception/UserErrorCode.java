@@ -25,6 +25,10 @@ public enum UserErrorCode implements ErrorCode {
     REQUIRE_MASTER_ROLE("USER4001", "마스터 권한이 필요합니다.", FORBIDDEN),
     REQUIRE_HUB_MASTER_ROLE("USER4002", "허브 관리자 권한이 필요합니다.", FORBIDDEN),
 
+    // 토큰 관련
+    INVALID_REFRESH_TOKEN("USER7001", "유효하지 않은 refresh token 입니다.", UNAUTHORIZED),
+    EXPIRED_REFRESH_TOKEN("USER7002", "만료된 refresh token 입니다.", UNAUTHORIZED),
+
     // Feign Client 관련
     SLACK_SERVICE_ERROR("USER8001", "slack 서비스 연동 중 오류가 발생했습니다.", BAD_GATEWAY),
 
