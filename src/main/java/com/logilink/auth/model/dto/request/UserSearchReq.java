@@ -1,15 +1,20 @@
 package com.logilink.auth.model.dto.request;
 
 import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
 
 public record UserSearchReq(
     String sortBy,
-    Sort.Direction direction,
-    int page,
-    int size
+    String direction,
+    Integer page,
+    Integer size
 ) {
-    public int getSize() {
+    public Integer page() {
+        return page ==  null ? 0 : page;
+    }
+
+    public Integer size() {
+        if (size == null) return 10;
+
         return switch (size) {
             case 10, 30, 50 -> size;
             default -> 10;
@@ -21,6 +26,7 @@ public record UserSearchReq(
     }
 
     public Sort.Direction getDirection() {
-        return direction == null ?  Direction.DESC : direction;
+        return (direction == null || direction.isBlank())
+            ? Sort.Direction.DESC : Sort.Direction.valueOf(direction.toUpperCase());
     }
 }

@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/hub-manager/users")
+@RequestMapping("/api/v1/users/hub-manager")
 @RequiredArgsConstructor
 public class HubMangerController {
 

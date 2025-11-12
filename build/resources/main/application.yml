@@ -6,10 +6,11 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:19090/eureka
-    register-with-eureka: false
-    fetch-registry: false
 
 spring:
+  application:
+    name: user-service
+
   datasource:
     url: jdbc:postgresql://localhost:5432/${DATABASE_NAME}
     username: ${DATABASE_USERNAME}
@@ -19,7 +20,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -34,7 +35,14 @@ jwt:
     key: ${JWT_SECRET_KEY}
   access:
     token:
-      expire: 3600000
+      expire:
+        master: 1800000
+        others: 3600000
+  refresh:
+    token:
+      expire:
+        master: 259200000
+        others: 604800000
 
 
 login:

@@ -12,23 +12,28 @@ import com.logilink.auth.model.dto.UserInfo;
 import com.logilink.auth.model.dto.UserMyInfo;
 import com.logilink.auth.model.dto.UserSignupInfo;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
+import com.logilink.auth.model.dto.request.TokenRefreshReq;
 import com.logilink.auth.model.dto.request.UserLoginReq;
 import com.logilink.auth.model.dto.request.UserSignupReq;
 import com.logilink.auth.model.dto.request.UserStatusUpdateReq;
 import com.logilink.auth.model.dto.request.UserUpdateReq;
 import com.logilink.auth.model.dto.response.MasterSignupRes;
+import com.logilink.auth.model.dto.response.TokenRefreshRes;
 import com.logilink.auth.model.dto.response.UserLoginRes;
 import com.logilink.auth.model.dto.response.UserPageRes;
 import com.logilink.auth.model.dto.response.UserSignupRes;
 import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.common.constants.DeliveryType;
 import com.logilink.auth.model.entity.DeliveryUser;
+import com.logilink.auth.model.entity.RefreshToken;
 import com.logilink.auth.model.entity.User;
 import com.logilink.auth.common.constants.UserRole;
 import com.logilink.auth.common.constants.UserStatus;
 import com.logilink.auth.repository.DeliveryUserRepository;
+import com.logilink.auth.repository.RefreshTokenRepository;
 import com.logilink.auth.repository.UserRepository;
 import feign.FeignException;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +50,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final DeliveryUserRepository deliveryUserRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     private final DeliveryLinkClient deliveryLinkClient;
 
@@ -101,9 +107,19 @@ public class UserService {
 
         // JWT 토큰 생성
         String accessToken = jwtUtil.createAccessToken(user);
+        String refreshToken = jwtUtil.createRefreshToken(user);
+
+        // 기존 리프레시 토큰 삭제
+        refreshTokenRepository.deleteByUser(user);
+
+        LocalDateTime expiresAt = LocalDateTime.now()
+            .plusSeconds(jwtUtil.getRefreshTokenExpiration(user.getRole())/1000);
+        RefreshToken refreshTokenEntity = RefreshToken.create(refreshToken, user, expiresAt);
+        refreshTokenRepository.save(refreshTokenEntity);
 
         UserInfo userInfo = UserInfo.from(user);
-        return UserLoginRes.of(accessToken, jwtUtil.getAccessTokenExpiration(), userInfo);
+        return UserLoginRes
+            .of(accessToken, refreshToken,jwtUtil.getAccessTokenExpiration(user.getRole())/1000, userInfo);
     }
 
     @Transactional
@@ -190,7 +206,7 @@ public class UserService {
         User user = getUser(userId);
 
         // 업데이트
-        user.updateUser(updateReq);
+        user.updateUser(updateReq);     // TODO 업데이트 할 내용 중 중복 있는지 확인
 
         return UserInfo.from(user);
     }
@@ -238,6 +254,52 @@ public class UserService {
         return UserMyInfo.from(me);
     }
 
+    @Transactional
+    public TokenRefreshRes refreshToken(TokenRefreshReq tokenRefreshReq) {
+        String refreshTokenValue = tokenRefreshReq.refreshToken();
+
+        if (!jwtUtil.validateToken(refreshTokenValue)) {
+            throw AppException.of(INVALID_REFRESH_TOKEN);
+        }
+
+        if (!jwtUtil.isRefreshToken(refreshTokenValue)) {
+            throw AppException.of(INVALID_REFRESH_TOKEN);
+        }
+
+        RefreshToken refreshTokenEntity = refreshTokenRepository.findValidByToken(refreshTokenValue)
+            .orElseThrow(() -> AppException.of(INVALID_REFRESH_TOKEN));
+
+        if (refreshTokenEntity.isExpired()) {
+            refreshTokenRepository.delete(refreshTokenEntity);
+            throw AppException.of(EXPIRED_REFRESH_TOKEN);
+        }
+
+        User user = refreshTokenEntity.getUser();
+        if (user.isDeleted()) {
+            refreshTokenRepository.delete(refreshTokenEntity);
+            throw AppException.of(USER_NOT_FOUND);
+        }
+
+        String newAccessToken = jwtUtil.createAccessToken(user);
+        String newRefreshToken = jwtUtil.createRefreshToken(user);
+
+        refreshTokenRepository.delete(refreshTokenEntity);
+
+        LocalDateTime newExpiresAt = LocalDateTime.now()
+            .plusSeconds(jwtUtil.getRefreshTokenExpiration(user.getRole()) / 1000);
+        RefreshToken newRefreshTokenEntity = RefreshToken
+            .create(newRefreshToken, user, newExpiresAt);
+        refreshTokenRepository.save(newRefreshTokenEntity);
+
+        UserInfo userInfo = UserInfo.from(user);
+
+        return TokenRefreshRes.of(
+            newAccessToken,
+            newRefreshToken,
+            jwtUtil.getAccessTokenExpiration(user.getRole()) / 1000,
+            userInfo
+        );
+    }
 
     private User getUser(Long userId) {
         return userRepository.findValidUserById(userId)
@@ -301,7 +363,3 @@ public class UserService {
         }
     }
 }
-
-// TODO :
-//  슬랙 아이디 저장하는 로직 필요
-//  - slack 도메인에서 슬랙 아이디 받아와서 저장

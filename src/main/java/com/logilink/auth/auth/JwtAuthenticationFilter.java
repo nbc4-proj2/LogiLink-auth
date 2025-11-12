@@ -24,10 +24,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService customUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-        FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+        HttpServletRequest request, HttpServletResponse response, FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String token = jwtUtil.getAccessTokenFromHeader(request);
+        String token = jwtUtil.getTokenFromHeader(request);
         if (StringUtils.hasText(token)) {
             try {
                 if (jwtUtil.validateToken(token) && jwtUtil.isAccessToken(token)) {
@@ -42,7 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         return;
                     }
                     String tokenRole = jwtUtil.getRoleFromToken(token);
-                    String curRole = userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
+                    String curRole = userDetails.getAuthorities().iterator().next()
+                        .getAuthority().replace("ROLE_", "");
 
                     if (!tokenRole.equals(curRole)) {
                         log.warn("Invalid role from token");
