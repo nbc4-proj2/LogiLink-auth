@@ -1,7 +1,7 @@
 package com.logilink.auth.model.entity;
 
 import com.logilink.auth.common.BaseEntity;
-import com.logilink.auth.common.constants.DeliveryType;
+import com.logilink.auth.common.constants.DeliveryUserType;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,17 +35,17 @@ public class DeliveryUser extends BaseEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    private DeliveryType deliveryType;
+    private DeliveryUserType deliveryType;
 
     private boolean isDeliveryAvailable;     // true 배송중 / false 배송중 아님
 
     /**
      * 배송 담당자 생성
      */
-    public static DeliveryUser createDeliveryUser(User user, DeliveryType deliveryType) {
+    public static DeliveryUser createDeliveryUser(User user, DeliveryUserType deliveryUserTypeType) {
         DeliveryUser deliveryUser = new DeliveryUser();
         deliveryUser.user = user;
-        deliveryUser.deliveryType = deliveryType;
+        deliveryUser.deliveryType = deliveryUserTypeType;
         deliveryUser.isDeliveryAvailable = false;
         return deliveryUser;
     }

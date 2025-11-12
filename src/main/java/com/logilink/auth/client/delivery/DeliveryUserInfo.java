@@ -1,6 +1,6 @@
 package com.logilink.auth.client.delivery;
 
-import com.logilink.auth.common.constants.DeliveryType;
+import com.logilink.auth.common.constants.DeliveryUserType;
 import com.logilink.auth.model.entity.DeliveryUser;
 import com.logilink.auth.model.entity.User;
 import java.util.UUID;
@@ -10,7 +10,7 @@ public record DeliveryUserInfo(
     UUID hubId,
     UUID companyId,
     String slackId,
-    DeliveryType deliveryType
+    DeliveryUserType deliveryType
 ) {
     public static DeliveryUserInfo from(User user, DeliveryUser deliveryUser) {
         return new DeliveryUserInfo(
