@@ -1,5 +1,6 @@
 package com.logilink.auth.auth;
 
+import com.logilink.auth.common.constants.UserRole;
 import com.logilink.auth.model.entity.DeliveryUser;
 import com.logilink.auth.model.entity.User;
 import io.jsonwebtoken.Claims;
@@ -25,13 +26,25 @@ import org.springframework.util.StringUtils;
 public class JwtUtil {
 
     public static final String BEARER_PREFIX = "Bearer ";
-    public static final String ACCESS_TOKEN_HEADER = " AccessToken";
+    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String ACCESS_TOKEN_HEADER = "AccessToken";
+    public static final String REFRESH_TOKEN_HEADER = "RefreshToken";
 
     @Value("${jwt.secret.key}")
     private String secretKey;
 
-    @Value("${jwt.access.token.expire}")
-    private Long accessTokenExpiration;
+    @Value("${jwt.access.token.expire.master}")
+    private Long accessTokenExpirationMaster;
+
+    @Value("${jwt.access.token.expire.others}")
+    private Long accessTokenExpirationOthers;
+
+    @Value("${jwt.refresh.token.expire.master}")
+    private Long refreshTokenExpirationMaster;
+
+    @Value("${jwt.refresh.token.expire.others}")
+    private Long refreshTokenExpirationOthers;
+
 
     private SecretKey key;
 
@@ -42,8 +55,11 @@ public class JwtUtil {
     }
 
     public String createAccessToken(User user) {
+        long expiration = user.getRole().name().equals("MASTER")
+            ? accessTokenExpirationMaster : accessTokenExpirationOthers;
+
         Date now = new Date();
-        Date validityDate = new Date(now.getTime() + accessTokenExpiration);
+        Date validityDate = new Date(now.getTime() + expiration);
 
         DeliveryUser deliveryUser = user.getDeliveryUser();
 
@@ -51,22 +67,42 @@ public class JwtUtil {
             Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("user_id", user.getId())
-                .claim("username",  user.getUsername())
-                .claim("role",  user.getRole())
+                .claim("username", user.getUsername())
+                .claim("role", user.getRole())
                 .claim("hub_id", user.getHubId())
                 .claim("company_id", user.getCompanyId())
-                .claim("type", "access")
+                .claim("type", "AccessToken")
                 // DeliveryUser 관련 claim
-                .claim("delivery_type", deliveryUser != null ? deliveryUser.getDeliveryType() : null)
-                .claim("is_delivery", deliveryUser != null ? deliveryUser.isDeliveryAvailable() : null)
+                .claim("delivery_type",
+                    deliveryUser != null ? deliveryUser.getDeliveryType() : null)
+                .claim("is_delivery",
+                    deliveryUser != null ? deliveryUser.isDeliveryAvailable() : null)
                 .issuedAt(now)
                 .expiration(validityDate)
                 .signWith(key)
                 .compact();
     }
 
-    public String getAccessTokenFromHeader(HttpServletRequest request) {
-        String bearerToken = request.getHeader(ACCESS_TOKEN_HEADER);
+    public String createRefreshToken(User user) {
+        long expiration = user.getRole().name().equals("MASTER")
+            ? refreshTokenExpirationMaster : refreshTokenExpirationOthers;
+
+        Date now = new Date();
+        Date validityDate = new Date(now.getTime() + expiration);
+
+        return BEARER_PREFIX +
+            Jwts.builder()
+                .subject(String.valueOf(user.getId()))
+                .claim("user_id", user.getId())
+                .claim("type", "RefreshToken")
+                .issuedAt(now)
+                .expiration(validityDate)
+                .signWith(key)
+                .compact();
+    }
+
+    public String getTokenFromHeader(HttpServletRequest request) {
+        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
@@ -146,7 +182,15 @@ public class JwtUtil {
         return ACCESS_TOKEN_HEADER.equals(getTokenTypeFromToken(token));
     }
 
-    public long getAccessTokenExpiration() {
-        return accessTokenExpiration / 1000;    // ms -> s 변환
+    public boolean isRefreshToken(String token) {
+        return REFRESH_TOKEN_HEADER.equals(getTokenTypeFromToken(token));
+    }
+
+    public long getAccessTokenExpiration(UserRole role) {
+        return role == UserRole.MASTER ? accessTokenExpirationMaster : accessTokenExpirationOthers;
+    }
+
+    public long getRefreshTokenExpiration(UserRole role) {
+        return role == UserRole.MASTER ? refreshTokenExpirationMaster : refreshTokenExpirationOthers;
     }
 }
