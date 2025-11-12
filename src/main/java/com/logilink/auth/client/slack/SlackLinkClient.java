@@ -8,5 +8,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface SlackLinkClient {
 
     @PostMapping("/api/slack/link")
-    SlackLinkRes linkSlack(@RequestBody SlackLinkReq slackLinkReq);
+    String linkSlack(@RequestBody SlackLinkReq slackLinkReq);
 }
