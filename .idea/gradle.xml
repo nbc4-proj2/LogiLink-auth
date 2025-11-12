@@ -11,6 +11,22 @@
           </set>
         </option>
       </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../com.logilink.delivery" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/../com.logilink.delivery" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../com.logilink.slack" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/../com.logilink.slack" />
+          </set>
+        </option>
+      </GradleProjectSettings>
     </option>
   </component>
 </project>
