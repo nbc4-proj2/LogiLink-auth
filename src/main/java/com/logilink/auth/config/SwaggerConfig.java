@@ -13,7 +13,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ComponentScan(basePackages = {"com.logilink.auth"})
 @OpenAPIDefinition(
     info = @Info(
         title = "LogiLink - User",
@@ -29,17 +28,15 @@ public class SwaggerConfig {
             .servers(List.of(
                 new Server().url("http://localhost:19092").description("user service")
             ))
-            .addSecurityItem(new SecurityRequirement()
-                .addList("accessToken")
-                .addList("refreshToken"))
+            .addSecurityItem(new SecurityRequirement().addList("accessToken"))
             .components(new Components()
-                .addSecuritySchemes("accessToken",
+                .addSecuritySchemes("AccessToken",
                     new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
                         .description("JWT Access Token"))
-                .addSecuritySchemes("refreshToken",
+                .addSecuritySchemes("RefreshToken",
                     new SecurityScheme()
                         .type(SecurityScheme.Type.APIKEY)
                         .in(SecurityScheme.In.HEADER)

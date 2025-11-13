@@ -56,7 +56,7 @@ public class User extends BaseEntity {
 
     private UUID hubId;         // 허브 관리자, 업체 담당자, 업체 배송 담당자
 
-    private UUID companyId;     // 업체 담당자, 업체 배송 담당자
+    private UUID companyId;     // 업체 담당자
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private DeliveryUser deliveryUser;
