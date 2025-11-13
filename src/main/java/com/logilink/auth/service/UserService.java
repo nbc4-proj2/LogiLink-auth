@@ -6,6 +6,7 @@ import static com.logilink.auth.common.exception.UserErrorCode.*;
 import com.logilink.auth.auth.JwtUtil;
 import com.logilink.auth.client.delivery.DeliveryLinkClient;
 import com.logilink.auth.client.delivery.DeliveryUserInfo;
+import com.logilink.auth.client.slack.SlackLinkService;
 import com.logilink.auth.config.security.LoginMasterKeyConfig;
 import com.logilink.auth.common.exception.AppException;
 import com.logilink.auth.model.dto.UserInfo;
@@ -23,7 +24,7 @@ import com.logilink.auth.model.dto.response.UserLoginRes;
 import com.logilink.auth.model.dto.response.UserPageRes;
 import com.logilink.auth.model.dto.response.UserSignupRes;
 import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
-import com.logilink.auth.common.constants.DeliveryType;
+import com.logilink.auth.common.constants.DeliveryUserType;
 import com.logilink.auth.model.entity.DeliveryUser;
 import com.logilink.auth.model.entity.RefreshToken;
 import com.logilink.auth.model.entity.User;
@@ -52,6 +53,7 @@ public class UserService {
     private final DeliveryUserRepository deliveryUserRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
+    private final SlackLinkService slackLinkService;
     private final DeliveryLinkClient deliveryLinkClient;
 
     private final PasswordEncoder passwordEncoder;
@@ -68,6 +70,9 @@ public class UserService {
 
         // 유저 생성
         User user = generateUser(signupReq, encodedPassword, PENDING);
+
+        // 슬랙 서버 호출
+        slackLinkService.linkSlack(user.getId());
 
         return UserSignupRes.from(user);
     }
@@ -87,6 +92,9 @@ public class UserService {
         // 마스터 유저 생성
         User master = User.createMaster(masterSignupReq, encodedPassword);
         userRepository.save(master);
+
+        // 슬랙 서버 호출
+        slackLinkService.linkSlack(master.getId());
 
         return MasterSignupRes.from(master);
     }
@@ -113,39 +121,43 @@ public class UserService {
         refreshTokenRepository.deleteByUser(user);
 
         LocalDateTime expiresAt = LocalDateTime.now()
-            .plusSeconds(jwtUtil.getRefreshTokenExpiration(user.getRole())/1000);
+            .plusSeconds(jwtUtil.getRefreshTokenExpiration(user.getRole()) / 1000);
         RefreshToken refreshTokenEntity = RefreshToken.create(refreshToken, user, expiresAt);
         refreshTokenRepository.save(refreshTokenEntity);
 
         UserInfo userInfo = UserInfo.from(user);
-        return UserLoginRes
-            .of(accessToken, refreshToken,jwtUtil.getAccessTokenExpiration(user.getRole())/1000, userInfo);
+
+        return UserLoginRes.of(
+            accessToken,
+            refreshToken,
+            jwtUtil.getAccessTokenExpiration(user.getRole()) / 1000,
+                userInfo
+        );
     }
 
     @Transactional
     public UserStatusUpdateRes updateUserStatusByMaster(
-        User user, UserStatusUpdateReq statusUpdateReq
+        Long masterId, UserStatusUpdateReq statusUpdateReq
     ) {
+        // userId로 유저 가져오기
+        User user = getUser(masterId);
+
         // 권한 확인
         checkMasterRole(user);
 
-        // 상태가 삭제되지 않은 User 리스트
+        // 상태가 승인되지 않은 User 리스트
         List<User> userList = userRepository.findValidUsersByIds(statusUpdateReq.userIdList());
 
-        // 더티체킹으로 업데이트
-        for (User pendingUser : userList) {
-            pendingUser.updateUserStatus(statusUpdateReq.status());
-        }
-
-        List<Long> updateIdList = userList.stream().map(User::getId).toList();
-
-        return UserStatusUpdateRes.of(updateIdList);
+        return updateUserStatusAndSendToDelivery(userList, statusUpdateReq.status());
     }
 
     @Transactional
     public UserStatusUpdateRes updateUserStatusByHubManager(
-        User user, UserStatusUpdateReq statusUpdateReq
+        Long hubManagerId, UserStatusUpdateReq statusUpdateReq
     ) {
+        // userId로 유저 가져오기
+        User user = getUser(hubManagerId);
+
         // 권한 확인
         checkHubManagerRole(user);
 
@@ -153,18 +165,15 @@ public class UserService {
         List<User> userList = userRepository.findValidUsersByIdsAndHubId(user.getHubId(),
             statusUpdateReq.userIdList());
 
-        for (User pendingUser : userList) {
-            pendingUser.updateUserStatus(statusUpdateReq.status());
-        }
-
-        List<Long> updateIdList = userList.stream().map(User::getId).toList();
-
-        return UserStatusUpdateRes.of(updateIdList);
+        return updateUserStatusAndSendToDelivery(userList, statusUpdateReq.status());
 
     }
 
     @Transactional(readOnly = true)
-    public UserPageRes getPendingUserPageForMaster(User user, Pageable pageable) {
+    public UserPageRes getPendingUserPageForMaster(Long masterId, Pageable pageable) {
+        // userId로 유저 가져오기
+        User user = getUser(masterId);
+
         // 권한 확인
         checkMasterRole(user);
 
@@ -174,7 +183,10 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserPageRes getPendingUserPageForHubManager(User user, Pageable pageable) {
+    public UserPageRes getPendingUserPageForHubManager(Long hubManagerId, Pageable pageable) {
+        // userId로 유저 가져오기
+        User user = getUser(hubManagerId);
+
         // 권한 확인
         checkHubManagerRole(user);
 
@@ -184,7 +196,10 @@ public class UserService {
     }
 
     @Transactional
-    public UserInfo createUser(User master, UserSignupReq signupReq) {
+    public UserInfo createUser(Long masterId, UserSignupReq signupReq) {
+        // userId로 유저 가져오기
+        User master = getUser(masterId);
+
         //권한 확인
         checkMasterRole(master);
 
@@ -198,21 +213,30 @@ public class UserService {
     }
 
     @Transactional
-    public UserInfo updateUser(User master, Long userId, UserUpdateReq updateReq) {
+    public UserInfo updateUser(Long masterId, Long userId, UserUpdateReq updateReq) {
+        // userId로 유저 가져오기
+        User master = getUser(masterId);
+
         // 권한 확인
         checkMasterRole(master);
 
         // 수정할 유저
         User user = getUser(userId);
 
+        // 중복 이메일 확인
+        checkDuplicateEmail(user, updateReq);
+
         // 업데이트
-        user.updateUser(updateReq);     // TODO 업데이트 할 내용 중 중복 있는지 확인
+        user.updateUser(updateReq);
 
         return UserInfo.from(user);
     }
 
     @Transactional
-    public void deleteUser(User master, Long userId) {
+    public void deleteUser(Long masterId, Long userId) {
+        // userId로 유저 가져오기
+        User master = getUser(masterId);
+
         // 권한 확인
         checkMasterRole(master);
 
@@ -225,7 +249,10 @@ public class UserService {
 
     // 마스터용 유저 조회
     @Transactional(readOnly = true)
-    public UserInfo getUserInfo(User master, Long userId) {
+    public UserInfo getUserInfo(Long masterId, Long userId) {
+        // userId로 유저 가져오기
+        User master = getUser(masterId);
+
         // 권한 확인
         checkMasterRole(master);
 
@@ -237,9 +264,12 @@ public class UserService {
 
     // 전체 조회
     @Transactional(readOnly = true)
-    public UserPageRes getAllUsersForMaster(User user, Pageable pageable) {
+    public UserPageRes getAllUsersForMaster(Long masterId, Pageable pageable) {
+        // userId로 유저 가져오기
+        User master = getUser(masterId);
+
         // 권한 확인
-        checkMasterRole(user);
+        checkMasterRole(master);
 
         Page<User> userPage = userRepository.findAllValidUserPage(pageable);
 
@@ -248,8 +278,8 @@ public class UserService {
 
     // 내 정보 조회
     @Transactional(readOnly = true)
-    public UserMyInfo getUserMyInfo(User user) {
-        User me = getUser(user.getId());
+    public UserMyInfo getUserMyInfo(Long userId) {
+        User me = getUser(userId);
 
         return UserMyInfo.from(me);
     }
@@ -313,8 +343,8 @@ public class UserService {
 
         // 배송 담당자라면 DeliveryUser 생성
         if (user.getRole().isDeliveryRole()) {
-            DeliveryType type = (user.getRole() == UserRole.HUB_DELIVERY_MANAGER)
-                ? DeliveryType.HUB : DeliveryType.COMPANY;
+            DeliveryUserType type = (user.getRole() == UserRole.HUB_DELIVERY_MANAGER)
+                ? DeliveryUserType.HUB : DeliveryUserType.COMPANY;
 
             // 배송 담당자 생성
             DeliveryUser deliveryUser = DeliveryUser.createDeliveryUser(user, type);
@@ -323,16 +353,35 @@ public class UserService {
             user.assignDeliveryUser(deliveryUser);
             deliveryUserRepository.save(deliveryUser);
 
-            DeliveryUserInfo deliveryUserInfo = DeliveryUserInfo.from(user, deliveryUser);
-
-            try {
-                deliveryLinkClient.createDeliveryUser(deliveryUserInfo);
-            } catch (FeignException e) {
-                log.warn("Failed to create delivery link for user {}", user.getId());
-            }
-
         }
         return user;
+    }
+
+    private UserStatusUpdateRes updateUserStatusAndSendToDelivery(
+        List<User> userList, UserStatus status
+    ) {
+        for (User u : userList) {
+            u.updateUserStatus(status);
+
+            // 승인으로 상태가 변경되고 배송 담당자라면 delivery 서버 연동
+            if (status == APPROVED && u.getRole().isDeliveryRole()) {
+                DeliveryUser deliveryUser = u.getDeliveryUser();
+
+                if (deliveryUser != null) {
+                    DeliveryUserInfo deliveryUserInfo = DeliveryUserInfo.from(u, deliveryUser);
+
+                    try {
+                        deliveryLinkClient.createDeliveryUser(deliveryUserInfo);
+                    } catch (FeignException e) {
+                        throw AppException.of(DELIVERY_SERVICE_ERROR);
+                    }
+                }
+            }
+        }
+
+        List<Long> updateIdList = userList.stream().map(User::getId).toList();
+
+        return UserStatusUpdateRes.of(updateIdList);
     }
 
     private static void checkMasterRole(User user) {
@@ -343,7 +392,7 @@ public class UserService {
 
     private static void checkHubManagerRole(User user) {
         if (user.getRole() != UserRole.HUB_MANAGER) {
-            throw AppException.of(REQUIRE_HUB_MASTER_ROLE);
+            throw AppException.of(REQUIRE_HUB_MANAGER_ROLE);
         }
     }
 
@@ -357,9 +406,21 @@ public class UserService {
         }
     }
 
+    private void checkDuplicateEmail(User user, UserUpdateReq userUpdateReq) {
+        if (userUpdateReq.email() != null && !userUpdateReq.email().equals(user.getEmail())) {
+            if (userRepository.existsValidUserByEmail(userUpdateReq.email())) {
+                throw AppException.of(DUPLICATE_EMAIL);
+            }
+        }
+    }
+
     private void checkUserStatus(User user) {
         if (user.getUserStatus() != UserStatus.APPROVED) {
             throw AppException.of(USER_NOT_APPROVED);
         }
     }
 }
+
+// TODO :
+//  슬랙 아이디 저장하는 로직 필요
+//  - slack 도메인에서 슬랙 아이디 받아와서 저장

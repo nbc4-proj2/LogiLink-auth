@@ -1,6 +1,12 @@
 package com.logilink.auth.controller;
 
+import static com.logilink.auth.common.exception.ApiErrorCode.INVALID_HEADER;
+import static com.logilink.auth.common.exception.UserErrorCode.REQUIRE_MASTER_ROLE;
+
 import com.logilink.auth.auth.CustomUserDetails;
+import com.logilink.auth.common.constants.UserRole;
+import com.logilink.auth.common.exception.AppException;
+import com.logilink.auth.common.util.HeaderExtractor;
 import com.logilink.auth.model.dto.UserInfo;
 import com.logilink.auth.model.dto.request.MasterSignupReq;
 import com.logilink.auth.model.dto.request.UserSearchReq;
@@ -12,13 +18,15 @@ import com.logilink.auth.model.dto.response.UserPageRes;
 import com.logilink.auth.model.dto.response.UserStatusUpdateRes;
 import com.logilink.auth.model.entity.User;
 import com.logilink.auth.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,10 +43,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/users/master")
 @RequiredArgsConstructor
+@Tag(name = "User - Master", description = "마스터 권한용 API")
 public class MasterController {
 
     private final UserService userService;
+    private final HeaderExtractor headerExtractor;
 
+    @Operation(summary = "마스터의 회원가입", description = "secret key를 이용해 인증된 유저만 마스터 권한으로 회원가입이 가능합니다.")
     @PostMapping("/signup")
     public ResponseEntity<MasterSignupRes> masterSignup(
         @RequestHeader("X-SECRET-KEY") String secretKey,
@@ -47,23 +58,24 @@ public class MasterController {
         return ResponseEntity.ok(userService.masterSignup(secretKey, masterSignupReq));
     }
 
+    @Operation(summary = "마스터의 유저 승인", description = "마스터는 회원 가입한 유저를 승인하거나 거절할 수 있습니다.")
     @PatchMapping("/status")
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserStatusUpdateRes> updateUserStatusByMaster(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @RequestBody UserStatusUpdateReq statusUpdateReq
+        @RequestBody UserStatusUpdateReq statusUpdateReq,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
-        return ResponseEntity.ok(userService.updateUserStatusByMaster(user, statusUpdateReq));
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
+
+        return ResponseEntity.ok(userService.updateUserStatusByMaster(masterId, statusUpdateReq));
     }
 
+    @Operation(summary = "마스터의 회원가입 신청 목록", description = "마스터가 전체 회원의 회원가입 신청 목록을 조회합니다.")
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserPageRes> getPendingUserPageForMaster(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @ModelAttribute UserSearchReq searchReq
+        @ModelAttribute UserSearchReq searchReq,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
 
         Pageable pageable = PageRequest.of(
             searchReq.page(),
@@ -71,58 +83,63 @@ public class MasterController {
             Sort.by(searchReq.getDirection(), searchReq.getSortBy())
         );
 
-        return ResponseEntity.ok(userService.getPendingUserPageForMaster(user, pageable));
+        return ResponseEntity.ok(userService.getPendingUserPageForMaster(masterId, pageable));
     }
 
+    @Operation(summary = "마스터의 유저 생성", description = "마스터가 유저를 생성합니다.")
     @PostMapping
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserInfo> createUser(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @Valid @RequestBody UserSignupReq signupReq
+        @Valid @RequestBody UserSignupReq signupReq,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
-        return ResponseEntity.ok(userService.createUser(user, signupReq));
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
+
+        return ResponseEntity.ok(userService.createUser(masterId, signupReq));
     }
 
+    @Operation(summary = "마스터의 유저 수정", description = "마스터가 유저 정보를 수정합니다.")
     @PutMapping("/{userId}")
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserInfo> updateUser(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long userId,
-        @Valid @RequestBody UserUpdateReq updateReq
+        @Valid @RequestBody UserUpdateReq updateReq,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
-        return ResponseEntity.ok(userService.updateUser(user, userId, updateReq));
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
+
+        return ResponseEntity.ok(userService.updateUser(masterId, userId, updateReq));
     }
 
+    @Operation(summary = "마스터의 유저 삭제", description = "마스터가 유저를 삭제합니다.(soft delete)")
     @DeleteMapping("/{userId}")
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<Void> deleteUser(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @PathVariable Long userId
+        @PathVariable Long userId,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
-        userService.deleteUser(user, userId);
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
+
+        userService.deleteUser(masterId, userId);
+
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "마스터의 유저 조회", description = "마스터가 특정 유저 정보를 조회합니다.")
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserInfo> getUserInfo(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @PathVariable Long userId
+        @PathVariable Long userId,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
-        return ResponseEntity.ok(userService.getUserInfo(user, userId));
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
+
+        return ResponseEntity.ok(userService.getUserInfo(masterId, userId));
     }
 
+    @Operation(summary = "마스터의 전체 조회", description = "마스터가 전체 유저 목록을 조회합니다.")
     @GetMapping
-    @PreAuthorize("hasRole('MASTER')")
     public ResponseEntity<UserPageRes> getAllUsersForMaster(
-        @AuthenticationPrincipal CustomUserDetails userDetails,
-        @ModelAttribute UserSearchReq searchReq
+        @ModelAttribute UserSearchReq searchReq,
+        HttpServletRequest request
     ) {
-        User user = userDetails.user();
+        Long masterId = headerExtractor.extractedFromHeaderForMaster(request);
 
         Pageable pageable = PageRequest.of(
             searchReq.page(),
@@ -130,7 +147,8 @@ public class MasterController {
             Sort.by(searchReq.getDirection(), searchReq.getSortBy())
         );
 
-        return ResponseEntity.ok(userService.getAllUsersForMaster(user, pageable));
+        return ResponseEntity.ok(userService.getAllUsersForMaster(masterId, pageable));
     }
+
 
 }

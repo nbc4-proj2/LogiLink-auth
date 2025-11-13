@@ -43,7 +43,13 @@ public class WebSecurityConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(a -> a
-                .anyRequest().permitAll()   // 모든 요청 허용
+                .requestMatchers(
+                    "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+                ).permitAll()       // swagger는 접근 가능
+                .requestMatchers(
+                    "api/v1/users/signup", "api/v1/users/login", "/api/v1/users/auth/refresh", "api/v1/users/master/signup"
+                ).permitAll()       // 회원가입, 로그인, 토큰 갱신은 인증 필요 없음
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
